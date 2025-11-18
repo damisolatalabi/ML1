@@ -23,11 +23,9 @@ class HMM:
         alpha = np.zeros((len(sequence), self.hidden_states), dtype=float)
 
         # initialize (t = 1), first row
-        index = 0
-        for entry in alpha[0]:
-            
-            alpha[0][index] = self.PI[index] * self.B[index]
-            index += 1
+        for index in range(self.hidden_states):
+            alpha[0][index] = self.PI[index] * self.B(sequence[0])
+
 
         # recursive step (t = 2...N)
         for t in range(1, len(sequence)):
@@ -37,7 +35,7 @@ class HMM:
                 for state in range(self.hidden_states):
                     temp += (alpha[t-1][state] * self.A[state][i])
 
-                alpha[t][i] = self.B(sequence[t], self.mu[i], self.var[i]) * temp
+                alpha[t][i] = self.B(sequence[t]) * temp
 
 
             # normalize values
@@ -51,8 +49,7 @@ class HMM:
         beta = np.zeros((len(sequence), self.hidden_states), dtype=float)
 
         # initialize t = T (last row)
-        index = 0
-        for entry in beta[len(sequence)-1]:
+        for index in range(self.hidden_states):
             beta[len(sequence)-1][index] = 1
 
         # recursive step
@@ -89,7 +86,7 @@ class HMM:
         for i in range(self.hidden_states):
             self.PI[i] = self.posterior(i, 1, alpha, beta, evidence)
 
-        # update trnasition matrix A
+        # update transition matrix A
         for i in range(self.hidden_states):
             for j in range(self.hidden_states):
 
@@ -123,21 +120,25 @@ class HMM:
 
             self.var[i] = var_num/den
 
-
-
     def train(self):
         pass
 
     def classify(self):
         pass
 
-    def B(self, observation, mean, variance):
-        
-        denominator = math.pow(2*math.pi,3/2) * math.sqrt(np.linalg.det(self.var))
+    def B(self, observation):
 
-        power = -0.5*(observation-mean)*np.linalg.inv(variance)*(observation-mean)
+        v = np.array([observation-self.mu])
+
+        denominator = math.pow(2*math.pi,3/2) * np.linalg.det(self.var)
+
+        power = -0.5*v.dot(np.linalg.inv(self.var))
+        power = power.dot(np.transpose(v))
+
+        power = power[0][0]
 
         return math.exp(power)/denominator
+
 
     
 
