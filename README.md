@@ -1,20 +1,18 @@
-
-We use Hidden Markov Models to classify the movements, we train 5 HMM's, one for each class.
-For each classification -> input goes through the 5 HMM's and the one with the highest return value determines the output class.
-
-
-### Model
+## Description
+Hidden markov Models are used to model and classify sequences representing movements.
+5 HMM's are trained, each modeling one class.
+To classify, the sequence goes through all 5 HMM's, the highest probabilty dictates the class.
 
 
-### Data
+### The Model
 
 #### Sample Size
-After all data segmentation is done, we will have approximately 4000 sequences for 5 classes where each sequence contains 200-300 points
+After all data segmentation is done, we have approximately 4000 sequences for 5 classes where each sequence contains 200-300 points
 
---> We will need to perform cross-validation to find best minimal data size for training.
+- Cross-validation will be required to find best minimal data size for training.
 
 
-#### To define ($\approx Hyperparameters$) :
+#### $Hyperparameters$ :
 
 - Number of hidden states --> requires cross-validation for optimal decision (can start at 3 and work up)
 
@@ -58,14 +56,12 @@ After all data segmentation is done, we will have approximately 4000 sequences f
 |            | $B=\frac{1}{(2\pi)^{\frac{d}{2}}det(\hat{\Sigma}_i)}e^{-\frac{1}{2}(O[t]-\hat{\mu}_i)^T\hat{\Sigma}^{-1}_i(O[t]-\hat{\mu}_i)}$                                                                                   |
 
 
-#### Training the model
-
---> A separate model is trained for each of 5 classes using training data for specific class.
+### Training
 
 
 ##### Forward-Backward method:
 
--  -->==Compute== $\alpha _t(i)$ and $\beta_t(i)$ 
+-  **Compute** $\alpha _t(i)$ and $\beta_t(i)$ 
 
 - $\alpha_t(i)$ 
 	1) Initiation ($t=1$) : 
@@ -73,7 +69,7 @@ After all data segmentation is done, we will have approximately 4000 sequences f
 			 $\alpha_1(i)=\pi_i\cdot b_i(O_1)$ 
 
 	2) Recursion (t=2..N) :
-		- ==For each time step== $t=2\ to\ T$ ==and state== $i=1\ to\ N$ :
+		- For each time step $t=2\ to\ T$ and state $i=1\ to\ N$ :
 			 $\alpha_t(i)=[\sum_{j=1}^N\alpha_{t-1}(j)\cdot A_{ji}]\cdot b_i(O_t)$ 
 			 OR
 			 $\alpha_t(j)=[\sum_{i=1}^N\alpha_{t}(i)\cdot A_{ij}]\cdot b_j(O_{t+1})$  
@@ -89,22 +85,22 @@ After all data segmentation is done, we will have approximately 4000 sequences f
 
 
 
-- -->==Normalize== both by (to prevent underflow): 
+- **Normalize** both by (to prevent underflow): 
 	- $c_t=\frac{1}{\sum_{i=1}^N\alpha _t(i)}$ for $\alpha _t(i)$  --> $\hat{\alpha}_t(i)=c_t\cdot \alpha_t(i)$  
 	- $c_{t+1}=\frac{1}{\sum_{i=1}^N\alpha _{t+1}(i)}$ for $\beta _t(i)$  --> $\hat{\beta}_t(i)=c_{t+1}\cdot \beta_t(i)$  
 
 
-- -->==Calculate== $P(O)$ : Probability of entire observation sequence $O$ 
+- **Calculate** $P(O)$ : Probability of entire observation sequence $O$ 
 	- $P(O)=\sum_{i=1}^N\alpha_T(i)$ or $=\sum_{i=1}^N\alpha_t(i)\cdot\beta_t(i)$ (for any time t) 
 
 
 
-- --> ==Calculate== Posterior: probability that state was $i$ at time $t$
+- **Calculate** Posterior: probability that state was $i$ at time $t$
 
 	- $\gamma_t(i)=\frac{\alpha _t(i)\cdot \beta_t(i)}{P(O)}$   
 
 
-- --> ==Calculate== probability of transition $i\rightarrow j$ at time $t$ 
+- **Calculate** probability of transition $i\rightarrow j$ at time $t$ 
 
 	- $\xi_t(i,j)=\frac{\alpha_t(i)A_{ij}B_j(O_{t+1})\beta_{t+1}(j)}{P(O)}$ 
 
@@ -117,14 +113,14 @@ After all data segmentation is done, we will have approximately 4000 sequences f
 
 ##### Updating Parameters : 
 
-- ==Initial state probabilities== : $\Pi$ 
+- **Initial state probabilities** : $\Pi$ 
 	- $\hat{\pi_i}=\gamma_1(i)$ 
 
-- ==Transition Matrix== : $A$ 
+- **Transition Matrix** : $A$ 
 	- $\hat{A_{ij}}=\frac{\sum_{t=1}^{T-1}\xi_t(i,j)}{\sum_{t=1}^{T-1}\gamma_t(i)}$ 
 		- Update how likely a specific transition is
 
-- ==Emission Probabilities==    
+- **Emission Probabilities**    
 	- For each state $i$ :
 
 		- Mean vector $\mu_i$
@@ -153,6 +149,8 @@ After all data segmentation is done, we will have approximately 4000 sequences f
 #### Testing - Classification
 
 --> The classifier only performs computation of $\alpha _t(i)$ 
+
+- $\sum_{i=1}^N\alpha_T(i)$ (sum last time step row)
 
 - After output from all 5 HMM classifiers --> Highest value --> classify to this class.
 
