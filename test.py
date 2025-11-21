@@ -34,6 +34,7 @@ def get_data(type, hidden_states):
         train_sequences.append(sequence)
 
     
+    # test data
     folder = f'clean_data/{type}'
     samples = os.listdir(folder)
 
@@ -62,7 +63,7 @@ def get_data(type, hidden_states):
 
             sequence.append(point)
 
-        test_sequences.append(sequence)
+        test_sequences.append([sequence, type])
 
     return model.HMM(hidden_states, type), train_sequences, test_sequences
 
@@ -87,22 +88,30 @@ def test(models, sequence, true_label):
                 max = res
                 label = models[i].get_label()
 
-    print("True : ", true_label, " | Predicted : ", label)
+
+    return true_label == label
 
     
 
-HMM_circle, circle_training_set, circle_test_set = get_data('circle', 3)
-HMM_diagonal_left, diagonal_left_training_set, diagonal_left_test_set = get_data('diagonal_left', 3)
-HMM_diagonal_right, diagonal_right_training_set, diagonal_right_test_set = get_data('diagonal_right', 3)
-HMM_horizontal, horizontal_training_set, horizontal_test_set = get_data('horizontal', 3)
-HMM_vertical, vertical_training_set, vertical_test_set = get_data('vertical', 3)
+HMM_circle, circle_training_set, circle_test_set = get_data('circle', 6)
+HMM_diagonal_left, diagonal_left_training_set, diagonal_left_test_set = get_data('diagonal_left', 6)
+HMM_diagonal_right, diagonal_right_training_set, diagonal_right_test_set = get_data('diagonal_right', 6)
+HMM_horizontal, horizontal_training_set, horizontal_test_set = get_data('horizontal', 6)
+HMM_vertical, vertical_training_set, vertical_test_set = get_data('vertical', 6)
 
 model_set = [HMM_circle, HMM_diagonal_left, HMM_diagonal_right, HMM_horizontal, HMM_vertical]
+test_set = [circle_test_set+diagonal_left_test_set+diagonal_right_test_set+horizontal_test_set+vertical_test_set]
 
 train([[HMM_circle, circle_training_set], [HMM_diagonal_left, diagonal_left_training_set], [HMM_diagonal_right, diagonal_right_training_set], [HMM_horizontal, horizontal_training_set], [HMM_vertical, vertical_training_set]])
 
-test(model_set, np.array(circle_test_set[0]), 'circle')
-test(model_set, np.array(diagonal_left_test_set[0]), 'diagonal left')
-test(model_set, np.array(diagonal_right_test_set[0]), 'diagonal right')
-test(model_set, np.array(horizontal_test_set[0]), 'horizontal')
-test(model_set, np.array(vertical_test_set[0]), 'vertical right')
+
+correct = 0
+for test_sequences in test_set:
+    
+    for sequence in test_sequences:
+        
+        if(test(model_set, np.array(sequence[0]), sequence[1])):
+            correct += 1
+
+print("Accuracy : ",correct/len(test_set),"%")
+
