@@ -6,8 +6,8 @@ class HMM:
         self.hidden_states = hidden_states
         self.PI = np.random.rand(self.hidden_states)
         self.A = np.random.rand(self.hidden_states, self.hidden_states)
-        self.mu = np.random.rand(self.hidden_states, 3)
-        self.var = np.random.rand(self.hidden_states, 3, 3)
+        self.mu = np.random.rand(3)
+        self.var = np.random.rand(3, 3)
         self.label = label
 
     def get_hidden_states(self):
@@ -69,7 +69,7 @@ class HMM:
         return beta
 
     def calc_evidence(self, alpha):
-        return sum(alpha[alpha.length-1])
+        return sum(alpha[alpha.shape[0]-1])
 
     def posterior(self, state, time, alpha, beta, evidence):
         return (alpha[time][state] * beta[time][state]) / evidence
@@ -77,8 +77,10 @@ class HMM:
     def transition_probability(self, state_i, state_j, alpha, beta, evidence, time, sequence):
         return (alpha[time][state_i] * self.A[state_i][state_j] * self.B(sequence[time+1], self.mu[state_j], self.var[state_j]) * beta[time+1][state_j]) / evidence
 
-    def init_params(self):
-        pass
+    def init_params(self, sequence):
+        
+        self.mu = np.mean(sequence, axis=0)
+        self.var = np.cov(sequence, rowvar=False)
 
     def update_parameters(self, alpha, beta, evidence, sequence):
 
@@ -123,8 +125,10 @@ class HMM:
     def train(self):
         pass
 
-    def classify(self):
-        pass
+    def classify(self, sequence):
+        
+        alpha = self.forward(sequence)
+        return self.calc_evidence(alpha)
 
     def B(self, observation):
 

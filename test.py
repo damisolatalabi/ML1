@@ -1,28 +1,55 @@
 import model
 import numpy as np
+import os
 
-model = model.HMM(3, 'test')
+model = model.HMM(3, 'circle')
 
-sequence = [
-    [10,15,-5],
-    [19,16,-4],
-    [20,17,-3],
-    [30,18,-2],
-    [40,19,-1],
-    [50,20, 0],
-    [61,22, 1],
-    [83,29, 2]
-]
+source = 'augmented_data_gaussian/circle'
+source_list = os.listdir(source)
 
-sequence = np.array(sequence)
+sequences = []
 
 
-model.mu = np.mean(sequence, axis=0)
-model.var = np.cov(sequence, rowvar=False)
+for sample in source_list:
+
+    sequence = []
+    
+    f = open(os.path.join(source,sample))
+    text = f.read()
+
+    text = text.split('\n')
+
+    for point in text:
+        if len(point) < 2:
+            continue
+
+        point = point.replace('(',"")
+        point = point.replace(')',"")
+
+        point = point.split(',')
+        point[0] = int(point[0])
+        point[1] = int(point[1])
+        point[2] = int(point[2])
+
+        sequence.append(point)
+
+    sequences.append(sequence)
+
+
+for seq in sequences:
+    O = np.array(seq)
+    model.init_params(O)
+
+    print(model.classify(O))
+
+print(len(sequences))
+
+#sequence = np.array(sequence)
+#model.init_params(sequence)
 
 
 
-model.forward(sequence)
+
 
 
 

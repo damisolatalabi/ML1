@@ -1,7 +1,7 @@
 import os
 
-source = 'data'
-dest = 'clean_data'
+source = 'data2'
+dest = 'clean_data2'
 
 try:
     source_list = os.listdir(source)
@@ -10,7 +10,7 @@ except:
     exit(1)
 
 try:
-    os.makedirs('clean_data')
+    os.makedirs('clean_data2')
 except:
     pass
 
@@ -41,11 +41,11 @@ for type in source_list:
                     destination.write('('+temp+')'+'\n')
 
 
-# Created aumented data using clean data -> store in augmented_data
+# Created augmented data using clean data -> store in augmented_data
 from numpy import random
 
-dest = 'augmented_data'
-source = 'clean_data'
+dest = 'augmented_data2'
+source = 'clean_data2'
 
 try:
     source_list = os.listdir(source)
@@ -54,7 +54,7 @@ except:
     exit(1)
 
 try:
-    os.makedirs('augmented_data')
+    os.makedirs('augmented_data2')
 except:
     pass
 
