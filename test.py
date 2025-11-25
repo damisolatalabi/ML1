@@ -5,7 +5,7 @@ import time
 from multiprocessing import Process
 
 def get_data(type, hidden_states):
-    folder = f'augmented_data_gaussian/{type}'
+    folder = f'aug5/{type}'
     samples = os.listdir(folder)
 
     train_sequences = []
@@ -37,7 +37,7 @@ def get_data(type, hidden_states):
 
     
     # test data
-    folder = f'clean_data/{type}'
+    folder = f'test_set/{type}'
     samples = os.listdir(folder)
 
     test_sequences = []
@@ -89,11 +89,11 @@ def test(models, sequence, true_label):
     
 
 if __name__ == "__main__":
-    HMM_circle, circle_training_set, circle_test_set = get_data('circle', 4)
-    HMM_diagonal_left, diagonal_left_training_set, diagonal_left_test_set = get_data('diagonal_left', 4)
-    HMM_diagonal_right, diagonal_right_training_set, diagonal_right_test_set = get_data('diagonal_right', 4)
-    HMM_horizontal, horizontal_training_set, horizontal_test_set = get_data('horizontal', 4)
-    HMM_vertical, vertical_training_set, vertical_test_set = get_data('vertical', 4)
+    HMM_circle, circle_training_set, circle_test_set = get_data('circle', 3)
+    HMM_diagonal_left, diagonal_left_training_set, diagonal_left_test_set = get_data('diagonal_left', 3)
+    HMM_diagonal_right, diagonal_right_training_set, diagonal_right_test_set = get_data('diagonal_right', 3)
+    HMM_horizontal, horizontal_training_set, horizontal_test_set = get_data('horizontal', 3)
+    HMM_vertical, vertical_training_set, vertical_test_set = get_data('vertical', 3)
 
     model_set = [HMM_circle, HMM_diagonal_left, HMM_diagonal_right, HMM_horizontal, HMM_vertical]
     test_set = circle_test_set+diagonal_left_test_set+diagonal_right_test_set+horizontal_test_set+vertical_test_set

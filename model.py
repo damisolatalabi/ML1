@@ -5,8 +5,9 @@ import random
 class HMM:
     def __init__(self, hidden_states, label):
         self.hidden_states = hidden_states
-        self.PI = np.random.rand(self.hidden_states)
-        self.PI /= self.PI.sum()
+
+        self.PI = np.random.dirichlet(alpha=np.ones(self.hidden_states))
+        self.PI = np.log(self.PI)
 
         self.A = np.random.rand(self.hidden_states, self.hidden_states)
         self.A /= self.A.sum(axis=1, keepdims=True)
@@ -30,12 +31,11 @@ class HMM:
         
         alpha = np.zeros((len(sequence), self.hidden_states), dtype=float)
 
-        log_PI = np.log(self.PI)
         log_A = np.log(self.A)
 
         # initialize (t = 1), first row
         for index in range(self.hidden_states):
-            alpha[0][index] = log_PI[index] + self.B(sequence[0], index)
+            alpha[0][index] = self.PI[index] + self.B(sequence[0], index)
 
         # recursive step (t = 2...N)
         for t in range(1, len(sequence)):
@@ -75,7 +75,8 @@ class HMM:
         return (alpha[time][state] + beta[time][state]) - evidence
 
     def transition_probability(self, state_i, state_j, alpha, beta, evidence, time, sequence):
-        return (alpha[time][state_i] + np.log(self.A[state_i][state_j]) + self.B(sequence[time+1],state_j) + beta[time+1][state_j]) - evidence
+        log_A = np.log(self.A)
+        return (alpha[time][state_i] + log_A[state_i][state_j] + self.B(sequence[time+1],state_j) + beta[time+1][state_j]) - evidence
 
     def update_parameters(self, alpha, beta, evidence, sequence):
 
@@ -135,7 +136,7 @@ class HMM:
 
             self.var[i] = var_num/den + np.eye(sequence.shape[1]) * 1e-3 #for stability
 
-    def train(self, sequences, max_iterations=100): #stops after max_iterations or when evidence stops improving significantly
+    def train(self, sequences, max_iterations=20): #stops after max_iterations or when evidence stops improving significantly
 
         prev_evidence = 0  # Initialize here
 

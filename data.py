@@ -1,103 +1,107 @@
 import os
+import numpy as np
 
-source = 'data2'
-dest = 'clean_data2'
+def clean():
 
-try:
-    source_list = os.listdir(source)
-except:
-    print('Could not find data set')
-    exit(1)
-
-try:
-    os.makedirs('clean_data2')
-except:
-    pass
-
-# Clean Data points -> store in clean_data folder
-for type in source_list:
-
-    t = os.path.join(source,type)
-    samples = os.listdir(t)
+    source = 'data'
+    dest = 'clean_data'
 
     try:
-        os.mkdir(os.path.join(dest,type))
+        source_list = os.listdir(source)
+    except:
+        print('Could not find data set')
+        exit(1)
+
+    try:
+        os.makedirs('clean_data')
     except:
         pass
 
+    # Clean Data points -> store in clean_data folder
+    for type in source_list:
 
-    for sample in samples:
+        t = os.path.join(source,type)
+        samples = os.listdir(t)
 
-        f = open(os.path.join(source,type,sample))
-        text = f.read()
-
-        target = os.path.join(dest,type,sample)
-
-        with open(target, "w") as destination:
-
-            for line in text.split('#'):
-                if(len(line) > 10):
-                    temp = line.split(',')[6].replace('/',',')
-                    destination.write('('+temp+')'+'\n')
+        try:
+            os.mkdir(os.path.join(dest,type))
+        except:
+            pass
 
 
-# Created augmented data using clean data -> store in augmented_data
-from numpy import random
+        for sample in samples:
 
-dest = 'augmented_data2'
-source = 'clean_data2'
+            f = open(os.path.join(source,type,sample))
+            text = f.read()
 
-try:
-    source_list = os.listdir(source)
-except:
-    print("Could not find clean data set")
-    exit(1)
+            target = os.path.join(dest,type,sample)
 
-try:
-    os.makedirs('augmented_data2')
-except:
-    pass
+            with open(target, "w") as destination:
 
-for type in source_list:
+                for line in text.split('#'):
+                    if(len(line) > 10):
+                        temp = line.split(',')[6].replace('/',',')
+                        destination.write('('+temp+')'+'\n')
 
-    t = os.path.join(source,type)
-    samples = os.listdir(t)
+
+
+def augment(s, d):
+    # Created augmented data using clean data -> store in augmented_data
+    dest = d
+    source = s
 
     try:
-        os.mkdir(os.path.join(dest,type))
+        source_list = os.listdir(source)
+    except:
+        print("Could not find clean data set")
+        exit(1)
+
+    try:
+        os.makedirs(dest)
     except:
         pass
 
-    file_counter = 100
+    for type in source_list:
 
-    for sample in samples:
+        t = os.path.join(source,type)
+        samples = os.listdir(t)
 
-        f = open(os.path.join(source,type,sample), "r")
-        text = f.read()
+        try:
+            os.mkdir(os.path.join(dest,type))
+        except:
+            pass
 
-        for i in range(int(200/len(samples))+1):
+        file_counter = 600
 
-            with open(os.path.join(dest,type,str(file_counter))+'.txt', "w") as destination:
-                file_counter += 1
+        for sample in samples:
 
-                for i in text.split('\n'):
+            f = open(os.path.join(source,type,sample), "r")
+            text = f.read()
 
-                    if len(i) > 1:
-                        i = i.replace("(", "")
-                        i = i.replace(")", "")
-                        i = i.split(',')
+            for i in range(5):
 
-                        point = [
-                            int(random.normal(int(i[0]), 5)),
-                            int(random.normal(int(i[1]), 5)),
-                            int(random.normal(int(i[2]), 5))
-                        ]
-                        
-                        destination.write('('+str(point[0])+','+str(point[1])+','+str(point[2])+')\n')
-            
-                        
-    file_counter = 100
+                with open(os.path.join(dest,type,str(file_counter))+'.txt', "w") as destination:
+                    file_counter += 1
 
-    
+                    for i in text.split('\n'):
+
+                        if len(i) > 1:
+                            i = i.replace("(", "")
+                            i = i.replace(")", "")
+                            i = i.split(',')
+
+                            point = [
+                                int(i[0]) + np.random.normal(0, 0.1),
+                                int(i[1]) + np.random.normal(0, 0.1),
+                                int(i[2]) + np.random.normal(0, 0.1)
+                            ]
+                            
+                            destination.write('('+str(point[0])+','+str(point[1])+','+str(point[2])+')\n')
+                
+                            
+        file_counter = 600
+
+        
 
 
+augment('clean_data2', 'aug5')
