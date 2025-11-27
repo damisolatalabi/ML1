@@ -1,21 +1,18 @@
 import numpy as np
 import math
 import random
+from scipy.special import logsumexp
+from scipy.stats import multivariate_normal
 
 class HMM:
     def __init__(self, hidden_states, label):
         self.hidden_states = hidden_states
 
         self.PI = np.random.dirichlet(alpha=np.ones(self.hidden_states))
-        self.PI = np.log(self.PI)
-
         self.A = np.random.rand(self.hidden_states, self.hidden_states)
-        self.A /= self.A.sum(axis=1, keepdims=True)
 
-        self.mu = np.random.rand(self.hidden_states, 3)
-
-        # Identity matrices
-        self.var = np.array([np.eye(3) for _ in range(self.hidden_states)])
+        self.mu = np.zeros((self.hidden_states, 6))
+        self.var = np.array([np.eye(6) for _ in range(self.hidden_states)])
 
         self.label = label
 
@@ -25,13 +22,14 @@ class HMM:
     def get_label(self):
         return self.label
 
+    def model_info(self):
+        return [self.label, self.hidden_states, self.PI, self.A, self.mu, self.var]
+
     # calculates the forward pass
     # return alpha matrix
     def forward(self, sequence):
         
         alpha = np.zeros((len(sequence), self.hidden_states), dtype=float)
-
-        log_A = np.log(self.A)
 
         # initialize (t = 1), first row
         for index in range(self.hidden_states):
@@ -41,165 +39,210 @@ class HMM:
         for t in range(1, len(sequence)):
             for i in range(self.hidden_states):
 
-                prev_logs = np.array([alpha[t-1][state] + log_A[state][i] for state in range(self.hidden_states)])
+                prev_logs = 0
 
-                alpha[t][i] = self.B(sequence[t], i) + self.logsumexp(prev_logs)
+                for state in range(self.hidden_states):
+                    prev_logs += alpha[t-1][state] * self.A[state][i]
 
+                alpha[t][i] = self.B(sequence[t], i) + prev_logs
+
+            alpha[t] /= np.sum(alpha[t])
 
         return alpha
 
-    def backward(self, sequence):
+        
+    def backward(self, sequence, alpha):
         
         beta = np.zeros((len(sequence), self.hidden_states), dtype=float)
 
-        log_A = np.log(self.A)
-
-        # initialize t = T (last row) --> log space --> all zeros
+        # initialize t = T (last row)
         for index in range(self.hidden_states):
-            beta[-1][index] = 0
+            beta[-1][index] = 1
 
         # recursive step
         for t in range(len(sequence)-2, -1, -1): # to go backwards
             for i in range(self.hidden_states):
+                terms = 0
+                for state in range(self.hidden_states):
+                    terms += self.A[i][state] * self.B(sequence[t+1], state) * beta[t+1][state]
 
-                terms = np.array([log_A[i][state] + self.B(sequence[t+1], state) + beta[t+1][state] for state in range(self.hidden_states)])
-
-                beta[t][i] = self.logsumexp(terms)
+                beta[t][i] = terms
+                
+            beta[t] /= np.sum(alpha[t+1])
 
         return beta
 
     def calc_evidence(self, alpha):
         return np.sum(alpha[-1])
 
+    def kmeans_cluster(self, data, K):
+        indices = np.random.choice(len(data[0]), K, replace=False)
+        centers = data[indices].copy()
+
+        for _ in range(50):
+            # assign points to closest center
+            distances = np.linalg.norm(data[:, None, :] - centers[None, :, :], axis=2)
+            labels = np.argmin(distances, axis=1)
+
+            # compute new centers
+            new_centers = np.zeros_like(centers)
+            for k in range(K):
+                cluster = data[labels == k]
+
+                if len(cluster) > 0:
+                    new_centers[k] = cluster.mean(axis=0)
+                else:
+                    # random empty cluster
+                    new_centers[k] = data[np.random.randint(len(data))]
+
+            # check if converged
+            if np.allclose(centers, new_centers):
+                break
+
+            centers = new_centers
+
+        return centers
+
+    def add_velocity(self, sequences):
+
+        seq_v = []
+
+        for seq in sequences:
+            seq = np.array(seq)
+            T = seq.shape[0]
+
+            velocity = np.zeros_like(seq)
+            velocity[1:] = seq[1:] - seq[:-1]
+
+            seq_aug = np.hstack([seq, velocity])
+            seq_v.append(seq_aug)
+
+        return seq_v
+ 
+
     def posterior(self, state, time, alpha, beta, evidence):
-        return (alpha[time][state] + beta[time][state]) - evidence
+        return (alpha[time][state] * beta[time][state]) / evidence
 
     def transition_probability(self, state_i, state_j, alpha, beta, evidence, time, sequence):
-        log_A = np.log(self.A)
-        return (alpha[time][state_i] + log_A[state_i][state_j] + self.B(sequence[time+1],state_j) + beta[time+1][state_j]) - evidence
-
-    def update_parameters(self, alpha, beta, evidence, sequence):
-
-        sequence = np.array(sequence)
-
-        gamma = np.exp(alpha + beta - evidence)
-
-        # Update initial state probabilities
-        self.PI = gamma[0] / np.sum(gamma[0])
-
-        # update transition matrix A
-        for i in range(self.hidden_states):
-            for j in range(self.hidden_states):
-                
-                transitions = []
-                posts = []
-
-                for t in range(len(sequence)-1):
-
-                    xi_ij = self.transition_probability(i,j,alpha,beta,evidence,t,sequence)
-                    transitions.append(xi_ij)
-
-                    gamma_i = self.posterior(i, t, alpha, beta, evidence)
-                    posts.append(gamma_i)
-
-                log_sum = self.logsumexp(transitions)
-                post_sum = self.logsumexp(posts)
-
-                self.A[i][j] = max(np.exp(log_sum - post_sum), 1e-10)
-
-        # update emission probability parameters
-        for i in range(self.hidden_states):
-
-
-            mean_num = np.zeros(3)
-            den = 0.0
-
-            # new mean parameters
-            for t in range(len(sequence)):
-                post = np.exp(self.posterior(i, t, alpha, beta, evidence))
-
-                mean_num += (post*sequence[t])
-                den += post
-
-            den = max(den, 1e-10)
-            self.mu[i] = mean_num/den
-
-            # new variance parameter
-
-            var_num = np.zeros((3, 3))
-
-            for t in range(len(sequence)):
-                post = np.exp(self.posterior(i, t, alpha, beta, evidence))
-                diff = sequence[t] - self.mu[i]
-                
-                var_num += post*np.outer(diff, diff)
-
-            self.var[i] = var_num/den + np.eye(sequence.shape[1]) * 1e-3 #for stability
+        return (alpha[time][state_i] * log_A[state_i][state_j] * self.B(sequence[time+1],state_j) * beta[time+1][state_j]) / evidence
 
     def train(self, sequences, max_iterations=20): #stops after max_iterations or when evidence stops improving significantly
 
-        prev_evidence = 0  # Initialize here
+        sequences = self.add_velocity(sequences)
 
+        # Use clusters for mean
         all_data = np.vstack(sequences)
-        indices = np.random.choice(all_data.shape[0], self.hidden_states, replace=False)
-        self.mu = all_data[indices]
+        self.mu = self.kmeans_cluster(all_data, self.hidden_states)
 
-        d = all_data.shape[1]  # dimension of points
-        global_var = np.var(all_data, axis=0)  # variance along each dimension
+        # use cluster labels for variances
+        labels = np.argmin(
+            np.linalg.norm(all_data[:, None, :] - self.mu[None, :, :], axis=2),
+            axis=1
+        )
 
-        # use diagonal covariance
-        eps = 1e-3  # variance floor
-        self.var = np.array([np.diag(global_var + eps) for _ in range(self.hidden_states)])
+        self.var = []
+        for k in range(self.hidden_states):
+            cluster = all_data[labels == k]
+
+            if len(cluster) > 5:
+                cov = np.cov(cluster.T)
+            else:
+                cov = np.eye(6) * 0.1
+
+            cov += np.eye(6) * 1e-3
+            self.var.append(cov)
+
+        self.var = np.array(self.var)
+
+        prev_evidence = -np.inf
+        
         
         for iteration in range(max_iterations):
-            total_evidence = 0 
-            
-            for sequence in sequences:
 
-                # E-step: Forward-Backward
-                alpha = self.forward(sequence)
-                beta = self.backward(sequence)
-                evidence = self.logsumexp(alpha[-1])  # Use this instead of calc_evidence
-                total_evidence += evidence
-                
-                # M-step: Update parameters
-                self.update_parameters(alpha, beta, evidence, sequence)
-            
-            #print(f"Iteration {iteration}, Total Evidence: {total_evidence}")
+            seq_evidence = self.update_parameters_all_sequences(sequences)
 
-            
-            # Check if evidence stopped improving significantly
-            if iteration > 0 and abs(total_evidence - prev_evidence) < 0.0001:
-                #print("Converged!")
-                #print(abs(total_evidence - prev_evidence))
+            # check convergence
+            if iteration > 0 and abs(seq_evidence - prev_evidence) < 1e-4:
                 break
+            prev_evidence = seq_evidence
+
+    def update_parameters_all_sequences(self, sequences):
+
+        # accumulators
+        mean_num_total = np.zeros((self.hidden_states, 6))
+        var_num_total = np.zeros((self.hidden_states, 6, 6))
+        den_total = np.zeros(self.hidden_states)
+        PI_accum = np.zeros(self.hidden_states)
+        A_accum = np.zeros((self.hidden_states, self.hidden_states))
+        
+        seq_evidence = 0
+        epsilon = 1e-10
+
+        for sequence in sequences:
+            sequence = np.array(sequence)
+            alpha = self.forward(sequence)
+            beta = self.backward(sequence, alpha)
+            evidence = logsumexp(alpha[-1])
+            seq_evidence += evidence
+
+            # posterior
+            log_gamma = alpha + beta - logsumexp(alpha[-1])
+            log_gamma -= np.max(log_gamma, axis=1, keepdims=True)
+            gamma = np.exp(log_gamma - logsumexp(log_gamma, axis=1, keepdims=True))
+
+            # accumulate PI and mean/variance
+            PI_accum += gamma[0]
             
-            prev_evidence = total_evidence  # Update for next iteration
+            # accumulate mu, var, and expected transitions
+            for t in range(len(sequence)):
+                for i in range(self.hidden_states):
+                    mean_num_total[i] += gamma[t,i] * sequence[t]
+                    den_total[i] += gamma[t,i]
+    
+                if t < len(sequence)-1:
+                    for i in range(self.hidden_states):
+                        for j in range(self.hidden_states):
+                            # xi_ij in log-space
+                            log_xi = alpha[t,i] + np.log(self.A[i,j]+epsilon) + self.B(sequence[t+1], j) + beta[t+1,j] - evidence
+                            xi_ij = np.exp(log_xi)
+                            A_accum[i,j] += xi_ij
+    
+            # accumulate variance
+            for i in range(self.hidden_states):
+                for t in range(len(sequence)):
+                    diff = sequence[t] - mean_num_total[i]/max(den_total[i], epsilon)
+                    var_num_total[i] += gamma[t,i] * np.outer(diff, diff)
+    
+        # update parameters
+        den_total_safe = np.maximum(den_total, epsilon)
+        self.mu = mean_num_total / den_total_safe[:, None]
+        self.var = var_num_total / den_total_safe[:, None, None] + np.eye(6)*1e-3
+        self.PI = PI_accum / PI_accum.sum()
+        
+        row_sums = A_accum.sum(axis=1, keepdims=True) + epsilon
+        self.A = A_accum / row_sums
+    
+        return seq_evidence
+            
 
     def classify(self, sequence):
+
+        # add velocity
+        seq = np.array(sequence)
+        velocity = np.diff(seq, axis=0) 
+        velocity = np.vstack([velocity[0], velocity]) 
+        seq_augmented = np.hstack([seq, velocity])
         
-        alpha = self.forward(sequence)
-        return self.logsumexp(alpha[-1])
+        alpha = self.forward(seq_augmented)
+        return logsumexp(alpha[-1])
 
     def B(self, observation, hidden_state):  
 
-        cov = self.var[hidden_state] + np.eye(self.var.shape[1]) * 1e-6 # added for numerical stability
+        cov = self.var[hidden_state] + np.eye(self.var.shape[1])*1e-6
+        log_prob = multivariate_normal.logpdf(observation, mean=self.mu[hidden_state], cov=cov)
+        return log_prob
 
-        diff = observation - self.mu[hidden_state]
 
-        m = -0.5 * 3 * np.log(2 * math.pi) - 0.5 * np.log(np.linalg.det(cov))
-
-        solved = np.linalg.solve(cov, diff)
-
-        exponent_value = diff.T.dot(solved)
-
-        e = -0.5 * exponent_value    
-
-        return m+e
-
-    def logsumexp(self, x):
-        m = np.max(x)
-        return m + np.log(np.sum(np.exp(x-m)))
 
         
 

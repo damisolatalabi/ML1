@@ -5,7 +5,7 @@ import time
 from multiprocessing import Process
 
 def get_data(type, hidden_states):
-    folder = f'aug5/{type}'
+    folder = f'clean_data/{type}'
     samples = os.listdir(folder)
 
     train_sequences = []
@@ -37,7 +37,7 @@ def get_data(type, hidden_states):
 
     
     # test data
-    folder = f'test_set/{type}'
+    folder = f'clean_data2/{type}'
     samples = os.listdir(folder)
 
     test_sequences = []
