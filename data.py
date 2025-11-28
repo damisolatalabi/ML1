@@ -78,7 +78,7 @@ def augment(s, d):
             f = open(os.path.join(source,type,sample), "r")
             text = f.read()
 
-            for i in range(5):
+            for i in range(3):
 
                 with open(os.path.join(dest,type,str(file_counter))+'.txt', "w") as destination:
                     file_counter += 1
@@ -91,9 +91,9 @@ def augment(s, d):
                             i = i.split(',')
 
                             point = [
-                                int(i[0]) + np.random.normal(0, 0.1),
-                                int(i[1]) + np.random.normal(0, 0.1),
-                                int(i[2]) + np.random.normal(0, 0.1)
+                                int(i[0]) + np.random.normal(0, 1),
+                                int(i[1]) + np.random.normal(0, 1),
+                                int(i[2]) + np.random.normal(0, 1)
                             ]
                             
                             destination.write('('+str(point[0])+','+str(point[1])+','+str(point[2])+')\n')

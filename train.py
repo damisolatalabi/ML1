@@ -1,15 +1,15 @@
-import os
-import numpy as np
 import model
+import numpy as np
+import os
+import time
+from multiprocessing import Process
 import random
 
-
-def prepare_test_set(type, source):
-    # test data
+def prepare_training_set(type, source):
     folder = f'{source}/{type}'
     samples = os.listdir(folder)
 
-    test_sequences = []
+    train_sequences = []
 
     for sample in samples:
 
@@ -34,9 +34,9 @@ def prepare_test_set(type, source):
 
             sequence.append(point)
 
-        test_sequences.append([sequence, type])
-        
-    return test_sequences
+        train_sequences.append(sequence)
+
+    return train_sequences
 
 def model_info(model):
     info = model.model_info()
@@ -46,6 +46,9 @@ def model_info(model):
     print(f"A : {info[3]}")
     print(f"Mean : {info[4]}")
     print(f"Variance : {info[5]}")
+
+def train(model, set):
+    model.train(set) 
 
 def test(models, sequence, true_label):
     best = -np.inf
@@ -62,33 +65,42 @@ def test(models, sequence, true_label):
 
     return true_label == label
 
+# Initialize models + number of hidden states
+hidden_states = 4
+
 model_set = [
-    model.HMM.load(f"model_parameters/circle.pkl"),
-    model.HMM.load(f"model_parameters/diagonal_left.pkl"),
-    model.HMM.load(f"model_parameters/diagonal_right.pkl"),
-    model.HMM.load(f"model_parameters/horizontal.pkl"),
-    model.HMM.load(f"model_parameters/vertical.pkl")
+    model.HMM(hidden_states, 'circle'),
+    model.HMM(hidden_states, 'diagonal_left'),
+    model.HMM(hidden_states, 'diagonal_right'),
+    model.HMM(hidden_states, 'horizontal'),
+    model.HMM(hidden_states, 'vertical')
 ]
 
-source_test = 'clean_data'
 
-test_sets = [
-    prepare_test_set('circle', source_test),
-    prepare_test_set('diagonal_left', source_test),
-    prepare_test_set('diagonal_right', source_test),
-    prepare_test_set('horizontal', source_test),
-    prepare_test_set('vertical', source_test)
+source_training = 'aug5'
+
+training_sets = [
+    prepare_training_set('circle', source_training),
+    prepare_training_set('diagonal_left', source_training),
+    prepare_training_set('diagonal_right', source_training),
+    prepare_training_set('horizontal', source_training),
+    prepare_training_set('vertical', source_training)
 ]
 
-test_set = [item for sublist in test_sets for item in sublist] 
-random.shuffle(test_set)
+# train models
+start = time.time()
+
+for model_obj, train_set in zip(model_set, training_sets):
+
+    print(f"Training {model_obj.get_label()}")
+    model_obj.train(train_set)
+
+end = time.time()
+
+print(f"Training finished in {end - start:.2f}s\n")
+
+# save model parameters
+for model in model_set:
+    model.save(f'model_parameters/{model.get_label()}.pkl')
 
 
-# test models
-correct = 0
-for sequence, true_label in test_set:
-    if test(model_set, sequence, true_label):
-        correct += 1
-
-accuracy = correct / len(test_set) * 100
-print(f"\nAccuracy: {accuracy:.2f}%")
