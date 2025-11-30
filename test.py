@@ -62,15 +62,16 @@ def test(models, sequence, true_label):
 
     return true_label == label
 
-model_set = [
-    model.HMM.load(f"model_parameters/circle.pkl"),
-    model.HMM.load(f"model_parameters/diagonal_left.pkl"),
-    model.HMM.load(f"model_parameters/diagonal_right.pkl"),
-    model.HMM.load(f"model_parameters/horizontal.pkl"),
-    model.HMM.load(f"model_parameters/vertical.pkl")
-]
+hidden_states = 2
+source_test = 'validation_set'
 
-source_test = 'clean_data'
+model_set = [
+    model.HMM.load(f"model_parameters{hidden_states}/circle.pkl"),
+    model.HMM.load(f"model_parameters{hidden_states}/diagonal_left.pkl"),
+    model.HMM.load(f"model_parameters{hidden_states}/diagonal_right.pkl"),
+    model.HMM.load(f"model_parameters{hidden_states}/horizontal.pkl"),
+    model.HMM.load(f"model_parameters{hidden_states}/vertical.pkl")
+]
 
 test_sets = [
     prepare_test_set('circle', source_test),

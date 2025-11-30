@@ -66,7 +66,8 @@ def test(models, sequence, true_label):
     return true_label == label
 
 # Initialize models + number of hidden states
-hidden_states = 4
+hidden_states = 2
+source_training = 'training_set'
 
 model_set = [
     model.HMM(hidden_states, 'circle'),
@@ -76,8 +77,6 @@ model_set = [
     model.HMM(hidden_states, 'vertical')
 ]
 
-
-source_training = 'aug5'
 
 training_sets = [
     prepare_training_set('circle', source_training),
@@ -99,8 +98,10 @@ end = time.time()
 
 print(f"Training finished in {end - start:.2f}s\n")
 
+os.makedirs(f'model_parameters{hidden_states}', exist_ok=True)
+
 # save model parameters
 for model in model_set:
-    model.save(f'model_parameters/{model.get_label()}.pkl')
+    model.save(f'model_parameters{hidden_states}/{model.get_label()}.pkl')
 
 

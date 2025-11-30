@@ -1,10 +1,12 @@
 import os
 import numpy as np
+import random
+import shutil
 
-def clean():
+def clean(source):
 
-    source = 'data'
-    dest = 'clean_data'
+    source = source
+    dest = f'{source}_processed'
 
     try:
         source_list = os.listdir(source)
@@ -13,7 +15,7 @@ def clean():
         exit(1)
 
     try:
-        os.makedirs('clean_data')
+        os.makedirs(f'{source}_processed')
     except:
         pass
 
@@ -43,12 +45,10 @@ def clean():
                         temp = line.split(',')[6].replace('/',',')
                         destination.write('('+temp+')'+'\n')
 
-
-
-def augment(s, d):
+def augment(src, clean, counter):
     # Created augmented data using clean data -> store in augmented_data
-    dest = d
-    source = s
+    dest = f'{src}_augmented'
+    source = src
 
     try:
         source_list = os.listdir(source)
@@ -57,7 +57,7 @@ def augment(s, d):
         exit(1)
 
     try:
-        os.makedirs(dest)
+        os.makedirs(f'{src}_augmented')
     except:
         pass
 
@@ -67,20 +67,25 @@ def augment(s, d):
         samples = os.listdir(t)
 
         try:
-            os.mkdir(os.path.join(dest,type))
+            os.mkdir(os.path.join(f'{src}_augmented',type))
         except:
             pass
 
-        file_counter = 600
-
+        file_counter = counter
+        
         for sample in samples:
-
+            
             f = open(os.path.join(source,type,sample), "r")
             text = f.read()
 
-            for i in range(3):
+            if clean:
+                r = 2
+            else:
+                r = 1
 
-                with open(os.path.join(dest,type,str(file_counter))+'.txt', "w") as destination:
+            for i in range(r):
+
+                with open(os.path.join(f'{src}_augmented',type,str(file_counter))+'.txt', "w") as destination:
                     file_counter += 1
 
                     for i in text.split('\n'):
@@ -99,9 +104,83 @@ def augment(s, d):
                             destination.write('('+str(point[0])+','+str(point[1])+','+str(point[2])+')\n')
                 
                             
-        file_counter = 600
+        file_counter = counter
 
-        
+def create_sets(train_folders, validation_folders, ratio=0.8, seed=42):
+
+    random.seed(seed)
+
+    classes = ['circle', 'diagonal_left', 'diagonal_right', 'horizontal', 'vertical']
+
+    os.makedirs("training_set", exist_ok=True)
+    os.makedirs("validation_set", exist_ok=True)
+
+    for cls in classes:
+
+        # training set
+        train_files = []
+        for folder in train_folders:
+            class_folder = os.path.join(folder, cls)
+            if not os.path.exists(class_folder):
+                continue
+
+            files = [os.path.join(class_folder, f) for f in os.listdir(class_folder) if os.path.isfile(os.path.join(class_folder, f))]
+            train_files.extend(files)
+            
+        random.shuffle(train_files)
+        split_idx = int(len(train_files) * ratio)
+        train_split = train_files[:split_idx]
 
 
-augment('clean_data2', 'aug5')
+        # Validation set
+        val_files = []
+        for folder in validation_folders:
+            class_folder = os.path.join(folder, cls)
+            if not os.path.exists(class_folder):
+                continue
+            files = [os.path.join(class_folder, f) for f in os.listdir(class_folder) if os.path.isfile(os.path.join(class_folder, f))]
+            val_files.extend(files)
+
+
+        os.makedirs(os.path.join("training_set", cls), exist_ok=True)
+        os.makedirs(os.path.join("validation_set", cls), exist_ok=True)
+
+        for f in train_split:
+            shutil.copy(f, os.path.join("training_set", cls, os.path.basename(f)))
+        for f in val_files:
+            shutil.copy(f, os.path.join("validation_set", cls, os.path.basename(f)))
+
+
+
+    # 80-20 separation
+
+    # Create training set
+    # use clean_set_augmented + noisy_set + noisy_set_augmented
+
+    # create validation set -> only non-augmented samples!
+    # use clean_set + noisy_set
+
+    for cls in classes:
+
+        all_files = []
+
+
+folders_train = [
+    "clean_dataset_processed_augmented",  # 2
+    "noisy_dataset_processed",    # 3
+    "noisy_dataset_processed_augmented"   # 4
+]
+
+# Validation: 1, 3
+folders_val = [
+    "clean_dataset_processed",    # 1
+    "noisy_dataset_processed"     # 3
+]
+
+#clean('clean_dataset')
+#clean('noisy_dataset')
+
+#augment('clean_dataset_processed', True, 100)
+#augment('noisy_dataset_processed', False, 500)
+
+#create_sets(folders_train, folders_val)
