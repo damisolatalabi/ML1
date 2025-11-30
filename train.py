@@ -77,7 +77,6 @@ model_set = [
     model.HMM(hidden_states, 'vertical')
 ]
 
-
 training_sets = [
     prepare_training_set('circle', source_training),
     prepare_training_set('diagonal_left', source_training),

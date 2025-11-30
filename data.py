@@ -177,10 +177,13 @@ folders_val = [
     "noisy_dataset_processed"     # 3
 ]
 
-#clean('clean_dataset')
-#clean('noisy_dataset')
+clean_input = 'clean_dataset'
+noisy_input = 'noisy_dataset'
 
-#augment('clean_dataset_processed', True, 100)
-#augment('noisy_dataset_processed', False, 500)
+clean(clean_input)
+clean(noisy_input)
 
-#create_sets(folders_train, folders_val)
+augment(f'{clean_input}_processed', True, 100)
+augment(f'{noisy_input}_processed', False, 500)
+
+create_sets(folders_train, folders_val)
