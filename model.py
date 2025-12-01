@@ -6,7 +6,7 @@ from scipy.stats import multivariate_normal
 import pickle
 
 class HMM:
-    def __init__(self, hidden_states, label):
+    def __init__(self, hidden_states, label, velocity):
         self.hidden_states = hidden_states
 
         self.PI = np.random.dirichlet(alpha=np.ones(self.hidden_states))
@@ -16,6 +16,12 @@ class HMM:
         self.var = None
 
         self.label = label
+        self.velocity = velocity
+
+        if self.velocity:
+            self.N = 6
+        else:
+            self.N = 3
 
     def save(self, filepath):
         params = {
@@ -24,18 +30,22 @@ class HMM:
             "PI": self.PI,
             "A": self.A,
             "mu": self.mu,
-            "var": self.var
+            "var": self.var,
+            "velocity": self.velocity
         }
 
         with open(filepath, "wb") as f:
             pickle.dump(params, f)
+
+    def with_velocity(self):
+        return self.velocity
 
     @classmethod
     def load(cls, filepath):
         with open(filepath, "rb") as f:
             params = pickle.load(f)
 
-        hmm = cls(params['hidden_states'], params['label'])
+        hmm = cls(params['hidden_states'], params['label'], params['velocity'])
         hmm.PI = params['PI']
         hmm.A = params['A']
         hmm.mu = params['mu']
@@ -182,7 +192,8 @@ class HMM:
 
     def train(self, sequences, max_iterations=20): #stops after max_iterations or when evidence stops improving significantly
 
-        sequences = self.add_velocity(sequences)
+        if(self.velocity):
+            sequences = self.add_velocity(sequences)
 
         # Use clusters for mean
         all_data = np.vstack(sequences)
@@ -200,9 +211,9 @@ class HMM:
             cluster = all_data[labels == k]
 
             if len(cluster) >= 2:
-                cov = np.cov(cluster.T) + np.eye(6)*1e-3
+                cov = np.cov(cluster.T) + np.eye(self.N)*1e-3
             else:
-                cov = np.eye(6) * 0.1
+                cov = np.eye(self.N) * 0.1
 
             
             self.var.append(cov)
@@ -257,12 +268,17 @@ class HMM:
     def classify(self, sequence):
 
         # add velocity
-        seq = np.array(sequence)
-        velocity = np.diff(seq, axis=0) 
-        velocity = np.vstack([velocity[0], velocity]) 
-        seq_augmented = np.hstack([seq, velocity])
-        
-        alpha = self.forward(seq_augmented)
+        if self.velocity:
+
+            seq = np.array(sequence)
+            velocity = np.diff(seq, axis=0) 
+            velocity = np.vstack([velocity[0], velocity]) 
+            seq_augmented = np.hstack([seq, velocity])
+            alpha = self.forward(seq_augmented)
+
+        else:
+            alpha = self.forward(sequence)
+
         return logsumexp(alpha[-1])
 
     def B(self, observation, hidden_state):  

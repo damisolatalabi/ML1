@@ -50,31 +50,16 @@ def model_info(model):
 def train(model, set):
     model.train(set) 
 
-def test(models, sequence, true_label):
-    best = -np.inf
-    label = ''
-
-    print(10*"*")
-    for model in models:
-        score = model.classify(sequence)
-        print(f"Model : {model.get_label()} | score = {score} | for class : {true_label}")
-        if score > best:
-            best = score
-            label = model.get_label()
-    print(10*"*")
-
-    return true_label == label
-
 # Initialize models + number of hidden states
-hidden_states = 2
+hidden_states = 3
 source_training = 'training_set'
 
 model_set = [
-    model.HMM(hidden_states, 'circle'),
-    model.HMM(hidden_states, 'diagonal_left'),
-    model.HMM(hidden_states, 'diagonal_right'),
-    model.HMM(hidden_states, 'horizontal'),
-    model.HMM(hidden_states, 'vertical')
+    model.HMM(hidden_states, 'circle', False),
+    model.HMM(hidden_states, 'diagonal_left', False),
+    model.HMM(hidden_states, 'diagonal_right', False),
+    model.HMM(hidden_states, 'horizontal', False),
+    model.HMM(hidden_states, 'vertical', False)
 ]
 
 training_sets = [

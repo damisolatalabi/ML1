@@ -62,7 +62,7 @@ def test(models, sequence, true_label):
 
     return true_label == label
 
-hidden_states = 2
+hidden_states = 3
 source_test = 'validation_set'
 
 model_set = [
