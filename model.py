@@ -151,6 +151,7 @@ class HMM:
             seq_aug = np.hstack([seq, velocity])
             seq_v.append(seq_aug)
 
+
         return seq_v
  
     def posterior(self, log_alpha, log_beta, log_evidence):

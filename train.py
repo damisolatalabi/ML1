@@ -4,6 +4,7 @@ import os
 import time
 from multiprocessing import Process
 import random
+import shutil
 
 def prepare_training_set(type, source):
     folder = f'{source}/{type}'
@@ -51,7 +52,7 @@ def train(model, set):
     model.train(set) 
 
 # Initialize models + number of hidden states
-hidden_states = 3
+hidden_states = 4
 source_training = 'training_set'
 
 model_set = [
@@ -81,6 +82,9 @@ for model_obj, train_set in zip(model_set, training_sets):
 end = time.time()
 
 print(f"Training finished in {end - start:.2f}s\n")
+
+if os.path.exists(f'model_parameters{hidden_states}'):
+    shutil.rmtree(f'model_parameters{hidden_states}')
 
 os.makedirs(f'model_parameters{hidden_states}', exist_ok=True)
 

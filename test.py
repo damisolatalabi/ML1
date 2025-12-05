@@ -90,6 +90,8 @@ correct = 0
 for sequence, true_label in test_set:
     if test(model_set, sequence, true_label):
         correct += 1
+        
 
 accuracy = correct / len(test_set) * 100
 print(f"\nAccuracy: {accuracy:.2f}%")
+print(f'Correct: {correct}/{len(test_set)}')
