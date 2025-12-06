@@ -8,6 +8,9 @@ def clean(source):
     source = source
     dest = f'{source}_processed'
 
+    if os.path.exists(f'{source}_processed'):
+        shutil.rmtree(f'{source}_processed')
+
     try:
         source_list = os.listdir(source)
     except:
@@ -56,8 +59,11 @@ def augment(src, clean, counter):
         print("Could not find clean data set")
         exit(1)
 
+    if os.path.exists(dest):
+        shutil.rmtree(dest)
+
     try:
-        os.makedirs(f'{src}_augmented')
+        os.makedirs(dest)
     except:
         pass
 
@@ -67,7 +73,7 @@ def augment(src, clean, counter):
         samples = os.listdir(t)
 
         try:
-            os.mkdir(os.path.join(f'{src}_augmented',type))
+            os.mkdir(os.path.join(dest,type))
         except:
             pass
 
@@ -86,7 +92,7 @@ def augment(src, clean, counter):
             for i in range(r):
                 scaling_factor = random.uniform(0.9, 1.1)#method 3 
 
-                with open(os.path.join(f'{src}_augmented',type,str(file_counter))+'.txt', "w") as destination:
+                with open(os.path.join(dest,type,str(file_counter))+'.txt', "w") as destination:
                     file_counter += 1
 
                     for i in text.split('\n'):
@@ -109,14 +115,28 @@ def augment(src, clean, counter):
                             
         file_counter = counter
 
-def create_sets(train_folders, validation_folders, ratio=0.8, seed=42):
+def create_sets(train_folders, validation_folders, ratio=0.8, seed=10):
 
     random.seed(seed)
 
     classes = ['circle', 'diagonal_left', 'diagonal_right', 'horizontal', 'vertical']
 
+    if os.path.exists(f'training_set'):
+        shutil.rmtree(f'training_set')
+
+    if os.path.exists(f'validation_set'):
+        shutil.rmtree(f'validation_set')
+
     os.makedirs("training_set", exist_ok=True)
     os.makedirs("validation_set", exist_ok=True)
+
+    # 80-20 separation
+
+    # Create training set
+    # use clean_set_augmented + noisy_set + noisy_set_augmented
+
+    # create validation set -> only non-augmented samples!
+    # use clean_set + noisy_set
 
     for cls in classes:
 
@@ -152,20 +172,6 @@ def create_sets(train_folders, validation_folders, ratio=0.8, seed=42):
             shutil.copy(f, os.path.join("training_set", cls, os.path.basename(f)))
         for f in val_files:
             shutil.copy(f, os.path.join("validation_set", cls, os.path.basename(f)))
-
-
-
-    # 80-20 separation
-
-    # Create training set
-    # use clean_set_augmented + noisy_set + noisy_set_augmented
-
-    # create validation set -> only non-augmented samples!
-    # use clean_set + noisy_set
-
-    for cls in classes:
-
-        all_files = []
 
 
 folders_train = [
